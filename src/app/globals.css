@@ -1,0 +1,296 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens - Supply Chain Investigation Platform
+ *
+ * Rules:
+ *  - Components consume semantic tokens only, never raw hex.
+ *  - shadcn naming is kept for primitives. NOTE: shadcn's `--accent` means "hover surface".
+ *    The brand moss is `--primary`.
+ *  - Every foreground/background pair below is verified by src/lib/design/contrast.test.ts.
+ *    Edit values only together with that test.
+ *  - Status is never conveyed by color alone: each state also has an icon and a text label.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces (warm neutrals) */
+  --background: #f6f4ef;
+  --foreground: #23221f;
+  --card: #fcfbf8;
+  --card-foreground: #23221f;
+  --popover: #fcfbf8;
+  --popover-foreground: #23221f;
+  --surface-sunken: #eeebe3;
+  --muted: #eeebe3;
+  --muted-foreground: #55524a;
+  --text-tertiary: #6b675d;
+  --secondary: #eeebe3;
+  --secondary-foreground: #23221f;
+  --accent: #ebe8df;
+  --accent-foreground: #23221f;
+
+  /* Borders and controls */
+  --border: #e2ded3;
+  --border-strong: #bdb8aa;
+  --input: #8c8777;
+  --ring: #4c5a2f;
+
+  /* Moss accent (brand, interactive, focus) */
+  --primary: #4c5a2f;
+  --primary-foreground: #fcfbf8;
+  --primary-hover: #3f4b26;
+  --primary-subtle: #e4e9d3;
+  --primary-subtle-foreground: #3f4b26;
+
+  /* Destructive */
+  --destructive: #a03a28;
+  --destructive-foreground: #fcfbf8;
+
+  /* Sidebar */
+  --sidebar: #efece4;
+  --sidebar-foreground: #23221f;
+  --sidebar-primary: #4c5a2f;
+  --sidebar-primary-foreground: #fcfbf8;
+  --sidebar-accent: #e4e9d3;
+  --sidebar-accent-foreground: #3f4b26;
+  --sidebar-border: #e2ded3;
+  --sidebar-ring: #4c5a2f;
+
+  /* Claim / verification states */
+  --status-verified-fg: #2b6446;
+  --status-verified-bg: #e0ede4;
+  --status-reported-fg: #55524a;
+  --status-reported-bg: #fcfbf8;
+  --status-inferred-fg: #2f5f6b;
+  --status-inferred-bg: #dfebee;
+  --status-assumed-fg: #6a4f7a;
+  --status-assumed-bg: #ede6f0;
+  --status-unknown-fg: #6b675d;
+  --status-unknown-bg: #eeebe3;
+  --status-conflicted-fg: #a03a28;
+  --status-conflicted-bg: #f5e0da;
+  --status-stale-fg: #7f5a0f;
+  --status-stale-bg: #f6e9c8;
+
+  /* Severity */
+  --sev-critical-bg: #a03a28;
+  --sev-critical-fg: #fcfbf8;
+  --sev-high-fg: #9a4a17;
+  --sev-high-bg: #f7e3d2;
+  --sev-medium-fg: #7f5a0f;
+  --sev-medium-bg: #f6e9c8;
+  --sev-low-fg: #55524a;
+  --sev-low-bg: #eeebe3;
+
+  /* Overlay elevation (the only shadow in the system) */
+  --overlay-shadow: 0 4px 16px rgb(35 34 31 / 0.1);
+  --radius: 0.375rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #1a1917;
+  --foreground: #ece9e1;
+  --card: #222120;
+  --card-foreground: #ece9e1;
+  --popover: #222120;
+  --popover-foreground: #ece9e1;
+  --surface-sunken: #161513;
+  --muted: #2a2825;
+  --muted-foreground: #b3aea1;
+  --text-tertiary: #9a9588;
+  --secondary: #2a2825;
+  --secondary-foreground: #ece9e1;
+  --accent: #2a2825;
+  --accent-foreground: #ece9e1;
+
+  --border: #3a3731;
+  --border-strong: #4a463e;
+  --input: #7a766a;
+  --ring: #9dae65;
+
+  --primary: #9dae65;
+  --primary-foreground: #1b2010;
+  --primary-hover: #aebd7a;
+  --primary-subtle: #2b3220;
+  --primary-subtle-foreground: #c9d69a;
+
+  --destructive: #e07f6b;
+  --destructive-foreground: #2a0f0a;
+
+  --sidebar: #161513;
+  --sidebar-foreground: #ece9e1;
+  --sidebar-primary: #9dae65;
+  --sidebar-primary-foreground: #1b2010;
+  --sidebar-accent: #2b3220;
+  --sidebar-accent-foreground: #c9d69a;
+  --sidebar-border: #2a2825;
+  --sidebar-ring: #9dae65;
+
+  --status-verified-fg: #7fc9a0;
+  --status-verified-bg: #1f3029;
+  --status-reported-fg: #b3aea1;
+  --status-reported-bg: #222120;
+  --status-inferred-fg: #8fc3cf;
+  --status-inferred-bg: #1f2f33;
+  --status-assumed-fg: #c9a9da;
+  --status-assumed-bg: #2e2535;
+  --status-unknown-fg: #9a9588;
+  --status-unknown-bg: #2a2825;
+  --status-conflicted-fg: #efa08e;
+  --status-conflicted-bg: #3a2320;
+  --status-stale-fg: #e3bc62;
+  --status-stale-bg: #352b14;
+
+  --sev-critical-bg: #e07f6b;
+  --sev-critical-fg: #2a0f0a;
+  --sev-high-fg: #f0b184;
+  --sev-high-bg: #3a2616;
+  --sev-medium-fg: #e3bc62;
+  --sev-medium-bg: #352b14;
+  --sev-low-fg: #b3aea1;
+  --sev-low-bg: #2a2825;
+
+  --overlay-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-subtle-foreground: var(--primary-subtle-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-status-verified: var(--status-verified-fg);
+  --color-status-verified-bg: var(--status-verified-bg);
+  --color-status-reported: var(--status-reported-fg);
+  --color-status-reported-bg: var(--status-reported-bg);
+  --color-status-inferred: var(--status-inferred-fg);
+  --color-status-inferred-bg: var(--status-inferred-bg);
+  --color-status-assumed: var(--status-assumed-fg);
+  --color-status-assumed-bg: var(--status-assumed-bg);
+  --color-status-unknown: var(--status-unknown-fg);
+  --color-status-unknown-bg: var(--status-unknown-bg);
+  --color-status-conflicted: var(--status-conflicted-fg);
+  --color-status-conflicted-bg: var(--status-conflicted-bg);
+  --color-status-stale: var(--status-stale-fg);
+  --color-status-stale-bg: var(--status-stale-bg);
+
+  --color-sev-critical: var(--sev-critical-bg);
+  --color-sev-critical-foreground: var(--sev-critical-fg);
+  --color-sev-high: var(--sev-high-fg);
+  --color-sev-high-bg: var(--sev-high-bg);
+  --color-sev-medium: var(--sev-medium-fg);
+  --color-sev-medium-bg: var(--sev-medium-bg);
+  --color-sev-low: var(--sev-low-fg);
+  --color-sev-low-bg: var(--sev-low-bg);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+
+  --shadow-overlay: var(--overlay-shadow);
+
+  /* Type scale: 12 / 13 / 14 / 16 / 20 / 26 / 32 (nothing below 12px) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-dense: 0.8125rem;
+  --text-dense--line-height: 1.25rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-title: 1.625rem;
+  --text-title--line-height: 2rem;
+  --text-kpi: 2rem;
+  --text-kpi--line-height: 2.25rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--primary-subtle);
+    color: var(--primary-subtle-foreground);
+  }
+
+  /* Numeric columns, IDs and timestamps */
+  .num,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

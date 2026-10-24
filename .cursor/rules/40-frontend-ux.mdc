@@ -1,0 +1,260 @@
+---
+description: Visual design system, theme behavior, UX, and frontend implementation standards.
+globs: ["**/*.tsx", "**/*.ts", "**/*.css"]
+alwaysApply: false
+---
+
+# Frontend UX and Visual Design Rules
+
+## 1. Product Identity
+
+Build a professional supply-chain investigation and operational intelligence platform for garment manufacturing.
+
+The product should feel like a carefully designed enterprise operations tool: precise, calm, information-dense, trustworthy, and visually distinctive.
+
+It is not a generic AI SaaS dashboard, chatbot, cryptocurrency dashboard, or marketing landing page.
+
+Prioritize operational clarity, evidence inspection, investigation workflows, and fast navigation.
+
+## 2. Theme Policy
+
+- Light theme is the primary and default theme.
+- Dark theme is a fully supported alternative.
+- Provide an accessible theme toggle in a consistent location, preferably the application header or user preferences.
+- Persist the user's selected theme using an appropriate client-side preference mechanism.
+- Use the light theme when no preference has been saved, unless the application has a clearly defined first-visit system-preference policy approved by the project owner.
+- Ensure the selected theme applies consistently across navigation, tables, dialogs, forms, charts, graphs, notifications, and investigation details.
+- Never make dark mode the default merely because the product uses AI.
+- Do not treat a theme toggle as complete until all major interface components support both themes.
+
+## 3. Visual Direction
+
+Use a refined industrial/editorial visual language inspired by high-quality enterprise operations software.
+
+The light theme should use:
+
+- Warm off-white or very light neutral application backgrounds.
+- White or near-white content surfaces.
+- Dark charcoal text with strong readability.
+- Subtle neutral borders and restrained shadows.
+- A carefully selected muted olive, moss, or similar non-blue accent.
+- Restrained amber, red, and green status colors with accessible text labels.
+- Clear spacing, alignment, typography, and table hierarchy.
+
+The dark theme should use:
+
+- Deep charcoal or graphite surfaces rather than default blue-black backgrounds.
+- Carefully differentiated surface layers.
+- Readable neutral text and subtle borders.
+- The same restrained accent identity used by the light theme.
+- Accessible contrast for status indicators, charts, and evidence labels.
+
+These are design directions, not mandatory hex values. Define consistent design tokens before building numerous components.
+
+## 4. Explicitly Avoid Generic AI Styling
+
+Do not default to:
+
+- Dark navy backgrounds with electric-blue accents.
+- Blue-purple gradient hero sections.
+- Glowing borders or neon effects.
+- Glassmorphism applied indiscriminately.
+- Decorative AI stars, brains, robots, or circuit illustrations.
+- Excessive gradients and oversized rounded cards.
+- Unnecessary animated background effects.
+- Generic dashboard templates that could belong to any AI startup.
+- Excessive empty space that makes operational information harder to inspect.
+- Randomly colored cards with no semantic purpose.
+
+Do not add a visual effect simply because it looks modern. Every design choice must improve clarity, hierarchy, usability, or product identity.
+
+## 5. Layout and Information Hierarchy
+
+Use a consistent application shell with:
+
+- A persistent sidebar for primary navigation.
+- A compact header for page context, search or relevant actions, notifications, and theme controls.
+- A clear main content area.
+- Contextual filters and actions close to the information they affect.
+- Responsive behavior for narrower screens.
+
+Prioritize useful information over decorative elements.
+
+Tables, evidence lists, investigation timelines, and structured details should be easy to scan without unnecessary clicks.
+
+Use compact, readable layouts appropriate for operational work. Do not make every item a large card.
+
+## 6. Product Navigation
+
+The intended application areas include:
+
+- Overview.
+- Live Activity.
+- Investigations.
+- Review Queue.
+- Supply Chain Graph.
+- Reports & Analytics.
+- Evidence Explorer.
+- Integrations.
+- Audit & Security.
+- Settings.
+
+Implement only the routes and features approved for the current phase. Do not generate empty pages for every future feature simply to populate the sidebar.
+
+Use clear active-navigation states and consistent page titles.
+
+## 7. Dashboard Design
+
+The Overview page should communicate operational status quickly.
+
+Potential elements include:
+
+- Active investigations.
+- Cases awaiting review.
+- Orders at risk.
+- Provisional material shortages.
+- Recent operational signals.
+- Investigation stage distribution.
+- Processing performance.
+- Verified resolution trends.
+
+Use concise metric labels, clear comparison periods where relevant, and restrained visual emphasis.
+
+Never display fabricated operational statistics as real data. Mark synthetic demo data clearly.
+
+Do not add a chart unless it answers a meaningful operational question.
+
+## 8. Live Activity Visualization
+
+Live Activity must represent actual persisted backend events when connected to the real system.
+
+- Show event timestamps, stage, status, duration when available, and related case references.
+- Distinguish completed, running, failed, blocked, and awaiting-review states.
+- Make event details inspectable.
+- Use meaningful timeline or stage visualization.
+- Show connection loss, stale data, and reconnection states.
+- Never use fake timers or fabricated percentages to imply that real processing is happening.
+- Clearly label mocked event streams as demonstrations.
+
+A frontend animation is not evidence of backend execution.
+
+## 9. Investigation Workspace
+
+Make evidence and uncertainty first-class interface elements.
+
+Clearly distinguish:
+
+- Verified facts.
+- Reported claims.
+- Inferences.
+- Assumptions.
+- Unknown information.
+- Conflicting evidence.
+- Stale records.
+
+Show the source behind important findings and calculations.
+
+Provide a readable investigation timeline, impact breakdown, related entities, missing-information list, and recommended next steps.
+
+Do not present a provisional shortage as confirmed until the required inputs have been verified.
+
+## 10. Review and Approval UX
+
+For consequential actions, display:
+
+- The exact proposed action.
+- Relevant parameters.
+- Supporting evidence.
+- Potential impact.
+- Remaining uncertainty.
+- The required reviewer decision.
+
+Approval and rejection controls must communicate their consequences clearly.
+
+Never rely on frontend visibility or disabled buttons as the only authorization control. The backend must enforce permissions and validate approvals.
+
+## 11. Graphs and Reports
+
+Graphs must make real supply-chain relationships understandable.
+
+- Distinguish verified relationships from inferred ones.
+- Use meaningful labels and a restrained palette.
+- Provide filters and focused views.
+- Allow users to inspect the underlying records.
+
+Reports must use documented metric definitions and real persisted data when represented as operational reports.
+
+Do not invent values, exaggerate precision, or use charts solely to make the dashboard appear sophisticated.
+
+## 12. Components and Design System
+
+If compatible with the existing repository, prefer the established stack of:
+
+- Next.js and React.
+- TypeScript.
+- Tailwind CSS.
+- shadcn/ui.
+- A suitable charting library.
+- A suitable graph visualization library when needed.
+
+Inspect the existing dependencies before introducing replacements.
+
+Define reusable design tokens for:
+
+- Backgrounds and surfaces.
+- Text and muted text.
+- Borders.
+- Accent colors.
+- Semantic statuses.
+- Spacing.
+- Typography.
+- Radius.
+- Shadows.
+- Focus indicators.
+
+Reuse components for tables, badges, status indicators, timelines, dialogs, and evidence panels.
+
+Avoid duplicated component systems and arbitrary per-page styling.
+
+## 13. Accessibility and Responsive Behavior
+
+- Maintain accessible contrast in both themes.
+- Never rely on color alone to communicate a status.
+- Support keyboard navigation and visible focus.
+- Provide accessible labels for controls.
+- Use semantic page structure.
+- Make tables and charts understandable.
+- Handle responsive layouts without clipping essential information.
+- Respect reduced-motion preferences when animation is used.
+
+## 14. Required UI States
+
+For each data-dependent page or component, consider:
+
+- Loading.
+- Empty.
+- Error.
+- Permission denied.
+- Stale data.
+- Partial data.
+- Successful data retrieval.
+
+Do not render a blank page or misleading zero values when data is unavailable.
+
+## 15. Design Workflow
+
+Before building a substantial new page:
+
+1. Inspect the current design system and existing components.
+2. Read the relevant UI/UX and styling skill instructions.
+3. Define the page's users, purpose, primary task, and information hierarchy.
+4. Reuse the established design tokens and components.
+5. Implement the approved scope.
+6. Inspect the result in the browser when possible.
+7. Check both light and dark themes.
+8. Check responsive behavior and accessibility.
+9. Run relevant checks and correct visual inconsistencies.
+
+Use the UI/UX Pro Max and UI styling skills when applicable. Use the UI/UX review skill after meaningful interface work.
+
+The final interface must be cohesive, usable, and consistent with the product's industrial/editorial visual identity—not a generic AI dashboard.
