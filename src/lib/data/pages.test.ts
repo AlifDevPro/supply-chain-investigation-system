@@ -16,9 +16,11 @@ describe("explore page loaders (fixtures)", () => {
     expect((await getEvidenceExplorerData("empty")).evidence).toEqual([]);
   });
 
-  it("builds a catalog graph and a focused material view", async () => {
+  it("builds a catalog graph with inferred mention edges and a focused material view", async () => {
     const all = await getGraphData("ok", { focus: "all" });
     expect(all.graph.nodes.some((n) => n.id === "material:NV-4410")).toBe(true);
+    expect(all.graph.edges.some((e) => e.relationship === "verified")).toBe(true);
+    expect(all.graph.edges.some((e) => e.relationship === "inferred")).toBe(true);
     const focused = await getGraphData("ok", { focus: "material", id: "NV-4410" });
     expect(focused.graph.focused).toBe(true);
     expect(focused.graph.nodes.some((n) => n.id === "material:NV-4410")).toBe(true);
@@ -32,9 +34,21 @@ describe("explore page loaders (fixtures)", () => {
     const reports = await getReportsData("ok", { window: "all" });
     expect(reports.metrics.windowLabel).toMatch(/All stored/);
     expect(reports.metrics.signalsInWindow).toBeGreaterThan(0);
+    expect(reports.sourceLabel).toMatch(/fixture/i);
+    expect(reports.sourceLabel).toMatch(/Not operational data/);
+    expect(reports.metrics.investigationThroughput).toBeGreaterThanOrEqual(0);
     const empty = await getReportsData("empty");
     expect(empty.metrics.duplicateRate.rate).toBeNull();
     expect(empty.metrics.measuredLatency.medianMs).toBeNull();
+  });
+
+  it("filters evidence by q", async () => {
+    const all = await getEvidenceExplorerData();
+    const sample = all.evidence[0];
+    expect(sample).toBeTruthy();
+    const filtered = await getEvidenceExplorerData("ok", { q: sample!.sourceRecordId });
+    expect(filtered.query).toBe(sample!.sourceRecordId);
+    expect(filtered.evidence.every((e) => e.sourceRecordId === sample!.sourceRecordId || e.title.includes(sample!.sourceRecordId) || e.excerpt.includes(sample!.sourceRecordId) || e.caseId.includes(sample!.sourceRecordId))).toBe(true);
   });
 
   it("describes integrations from observed records, not health claims", async () => {

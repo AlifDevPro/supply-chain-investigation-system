@@ -19,7 +19,7 @@ Persisted events are append-only: database triggers reject `update` and `delete`
 - `signalId`: originating signal, when the event belongs to one.
 - `correlationId`: joins every event of one signal or action. Used for the signal trace.
 - `type`: one of the conventional names in `eventTypeSchema` (`signal.received`, `triage.completed`, ...).
-- `stage`: one of `received, validated, deduplicated, triaged, evidence, impact, case, extraction, review, action, verified`.
+- `stage`: one of `received, validated, deduplicated, triaged, evidence, impact, case, extraction, review, action, verified, integration`.
 - `status`: `completed | failed | retrying | waiting | skipped`.
 - `occurredAt`: server-generated ISO timestamp. Clients never set it.
 - `durationMs`: measured duration, or `null`. `null` is displayed as "not measured", never invented.
@@ -98,6 +98,23 @@ Written after a signed-in review or approval. `metadata.actor` is the signed-in 
 | `outcome.verified` | `verified` | `completed` | `actor`, `matched: true` |
 
 `action.execution_completed` is not `outcome.verified`. See `docs/review-and-actions.md`.
+
+### Phase 6 MCP and connector events
+
+Written by the MCP tool host and HTTPS connector pollers. `signalId` and `caseId` are usually null.
+Stage is always `integration`. See `docs/mcp-and-integrations.md`.
+
+| Type | Status | Metadata (safe only) |
+| --- | --- | --- |
+| `tool.called` | `completed` | `tool`, `actorKind`, `callId` |
+| `tool.completed` | `completed` | `tool`, `callId`, `rows`, `truncated` |
+| `tool.failed` | `failed` | `tool`, `callId`, `reason` (+ `errorClass`) |
+| `connector.poll_started` | `completed` | `connector`, `runId`, `configured` |
+| `connector.poll_completed` | `completed` | `connector`, `runId`, `signalsIngested`, optional `httpStatusClass` |
+| `connector.poll_failed` | `failed` | `connector`, `runId`, `signalsIngested`, optional `httpStatusClass` (+ `errorClass`) |
+
+Append-only tables `tool_calls` and `connector_runs` mirror these for the Integrations activity feed.
+Secrets and full source payloads are never stored in metadata.
 
 ## Consumer rules (UI)
 

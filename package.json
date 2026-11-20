@@ -17,12 +17,16 @@
     "db:seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-seed.ts",
     "db:investigate": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-investigate.ts",
     "db:extract": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-extract.ts",
-    "ai:smoke": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ai-smoke.ts"
+    "ai:smoke": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ai-smoke.ts",
+    "mcp": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/mcp-server.ts",
+    "mock:sources": "tsx --env-file-if-exists=.env.local scripts/mock-external-sources.ts",
+    "integrations:poll": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/integrations-poll.ts"
   },
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

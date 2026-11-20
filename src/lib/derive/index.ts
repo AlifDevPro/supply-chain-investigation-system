@@ -144,8 +144,28 @@ export function attentionItems(cases: readonly InvestigationCase[]): AttentionIt
 
 /** Case-count by lifecycle state, in lifecycle order, omitting empty states. */
 export { buildReviewQueue, type ReviewQueueItem, type QueueKind } from "./review-queue";
-export { computeReportMetrics, parseReportWindow, REPORT_WINDOWS, WINDOW_LABEL, type ReportMetrics, type ReportWindow, type NamedCount } from "./reports";
-export { catalogGraph, focusGraph, graphFocusOptions, expandableNodeIds, type GraphNode, type GraphEdge, type SupplyGraph, type GraphFocusKind } from "./graph";
+export {
+  computeReportMetrics,
+  parseReportWindow,
+  reportDataSourceLabel,
+  REPORT_WINDOWS,
+  WINDOW_LABEL,
+  type ReportMetrics,
+  type ReportWindow,
+  type NamedCount,
+} from "./reports";
+export {
+  catalogGraph,
+  focusGraph,
+  graphFocusOptions,
+  expandableNodeIds,
+  signalMentionEdges,
+  type GraphNode,
+  type GraphEdge,
+  type SupplyGraph,
+  type GraphFocusKind,
+  type SignalMentionRefs,
+} from "./graph";
 export { auditTrail, filterAudit, type AuditRow } from "./audit";
 
 export function stageDistribution(

@@ -36,6 +36,15 @@ const envSchema = z
     OLLAMA_MODEL: z.string().trim().min(1).max(100).optional(),
     AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
     AI_MAX_RETRIES: z.coerce.number().int().min(0).max(2).default(1),
+    /** Bearer key for POST /api/mcp. Separate from ingest. Tenant is always DEMO_TENANT_ID. */
+    MCP_API_KEY: z.string().min(24, "MCP_API_KEY must be at least 24 characters").optional(),
+    MCP_TOOL_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(5_000),
+    MAILBOX_BASE_URL: z.string().url().optional(),
+    MAILBOX_API_KEY: z.string().min(8).optional(),
+    ERP_BASE_URL: z.string().url().optional(),
+    ERP_API_KEY: z.string().min(8).optional(),
+    CARRIER_BASE_URL: z.string().url().optional(),
+    CARRIER_API_KEY: z.string().min(8).optional(),
   })
   .superRefine((env, ctx) => {
     if (env.DATA_SOURCE === "database" && !env.DATABASE_URL) {
@@ -58,6 +67,36 @@ const envSchema = z
           path: ["OLLAMA_BASE_URL"],
           message: "OLLAMA_BASE_URL must be a loopback address (localhost, 127.0.0.1 or [::1]); remote inference is not allowed",
         });
+      }
+    }
+    const connectors: Array<{ url?: string; key?: string; urlPath: string; keyPath: string }> = [
+      { url: env.MAILBOX_BASE_URL, key: env.MAILBOX_API_KEY, urlPath: "MAILBOX_BASE_URL", keyPath: "MAILBOX_API_KEY" },
+      { url: env.ERP_BASE_URL, key: env.ERP_API_KEY, urlPath: "ERP_BASE_URL", keyPath: "ERP_API_KEY" },
+      { url: env.CARRIER_BASE_URL, key: env.CARRIER_API_KEY, urlPath: "CARRIER_BASE_URL", keyPath: "CARRIER_API_KEY" },
+    ];
+    for (const c of connectors) {
+      if (Boolean(c.url) !== Boolean(c.key)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [c.urlPath],
+          message: `${c.urlPath} and ${c.keyPath} must both be set, or both left blank`,
+        });
+      }
+      if (c.url) {
+        try {
+          const parsed = new URL(c.url);
+          const https = parsed.protocol === "https:";
+          const httpLoopback = parsed.protocol === "http:" && isLoopbackUrl(c.url);
+          if (!https && !httpLoopback) {
+            ctx.addIssue({
+              code: "custom",
+              path: [c.urlPath],
+              message: `${c.urlPath} must be https://, or http:// on loopback for the local mock source server`,
+            });
+          }
+        } catch {
+          /* zod url already failed */
+        }
       }
     }
   });
@@ -88,6 +127,14 @@ export function parseEnv(source: Record<string, string | undefined>): AppEnv {
     DEMO_MANAGER_PASSWORD: blank(source.DEMO_MANAGER_PASSWORD),
     GOOGLE_CLIENT_ID: blank(source.GOOGLE_CLIENT_ID),
     GOOGLE_CLIENT_SECRET: blank(source.GOOGLE_CLIENT_SECRET),
+    MCP_API_KEY: blank(source.MCP_API_KEY),
+    MCP_TOOL_TIMEOUT_MS: blank(source.MCP_TOOL_TIMEOUT_MS),
+    MAILBOX_BASE_URL: blank(source.MAILBOX_BASE_URL),
+    MAILBOX_API_KEY: blank(source.MAILBOX_API_KEY),
+    ERP_BASE_URL: blank(source.ERP_BASE_URL),
+    ERP_API_KEY: blank(source.ERP_API_KEY),
+    CARRIER_BASE_URL: blank(source.CARRIER_BASE_URL),
+    CARRIER_API_KEY: blank(source.CARRIER_API_KEY),
   });
   if (!result.success) {
     const problems = result.error.issues.map((i) => `${i.path.join(".") || "env"}: ${i.message}`);

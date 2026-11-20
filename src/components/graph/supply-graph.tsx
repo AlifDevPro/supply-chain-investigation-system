@@ -171,6 +171,25 @@ export function SupplyGraphView({
                 <dd className="font-mono text-xs">{selected.node.sourceTable}</dd>
                 <dt className="text-muted-foreground">Detail</dt>
                 <dd>{selected.node.detail}</dd>
+                <dt className="text-muted-foreground">Drill-down</dt>
+                <dd className="space-y-1">
+                  <div>
+                    <Link
+                      href={`/investigations?ref=${encodeURIComponent(selected.node.recordId)}`}
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      Investigations mentioning {selected.node.recordId}
+                    </Link>
+                  </div>
+                  <div>
+                    <Link
+                      href={`/evidence?q=${encodeURIComponent(selected.node.recordId)}`}
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      Evidence for {selected.node.recordId}
+                    </Link>
+                  </div>
+                </dd>
               </>
             ) : null}
             {selected?.edge ? (
@@ -181,8 +200,24 @@ export function SupplyGraphView({
                 <dd className="font-mono text-xs">{selected.edge.to}</dd>
                 <dt className="text-muted-foreground">Relationship</dt>
                 <dd>{selected.edge.relationship}</dd>
-                <dt className="text-muted-foreground">Basis column</dt>
+                <dt className="text-muted-foreground">Basis</dt>
                 <dd className="font-mono text-xs">{selected.edge.basis}</dd>
+                <dt className="text-muted-foreground">Drill-down</dt>
+                <dd className="space-y-1">
+                  {[selected.edge.from, selected.edge.to].map((endpoint) => {
+                    const recordId = endpoint.includes(":") ? endpoint.slice(endpoint.indexOf(":") + 1) : endpoint;
+                    return (
+                      <div key={endpoint}>
+                        <Link
+                          href={`/investigations?ref=${encodeURIComponent(recordId)}`}
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          Investigations mentioning {recordId}
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </dd>
               </>
             ) : null}
           </dl>

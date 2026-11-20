@@ -33,6 +33,8 @@ export interface ReportMetrics {
   triageMix: NamedCount[];
   heldBacklog: { count: number; oldestAgeHours: number | null };
   casesByState: NamedCount[];
+  /** Cases whose openedAt falls inside the selected window. */
+  investigationThroughput: number;
   impactSplit: { verified: number; provisional: number; incalculable: number; none: number };
   unknowns: { total: number; cases: number; average: number | null };
   conflicts: { total: number; cases: number; average: number | null };
@@ -41,6 +43,11 @@ export interface ReportMetrics {
   rulesAgreement: Rate;
   measuredLatency: { samples: number; medianMs: number | null };
   verifiedOutcomes: number;
+  /**
+   * outcome.verified events in window ÷ action.execution_completed events in window.
+   * null when there were no completed executions to verify (not measured).
+   */
+  verificationRate: Rate;
 };
 
 export const WINDOW_LABEL: Record<ReportWindow, string> = {
@@ -146,6 +153,10 @@ export function computeReportMetrics(input: {
   const stateCounts = new Map<CaseState, number>();
   for (const c of input.cases) stateCounts.set(c.state, (stateCounts.get(c.state) ?? 0) + 1);
 
+  const casesOpened = input.cases.filter((c) => inWindow(c.openedAt, cutoff)).length;
+  const verifiedOutcomes = events.filter((e) => e.type === "outcome.verified").length;
+  const executionsCompleted = events.filter((e) => e.type === "action.execution_completed").length;
+
   return {
     window: input.window,
     windowLabel: WINDOW_LABEL[input.window],
@@ -157,6 +168,7 @@ export function computeReportMetrics(input: {
     casesByState: LIFECYCLE_ORDER.filter((s) => (stateCounts.get(s) ?? 0) > 0).map((state) => ({
       key: state, label: state.replaceAll("_", " "), count: stateCounts.get(state)!,
     })),
+    investigationThroughput: casesOpened,
     impactSplit,
     unknowns: { total: unknownTotal, cases: findingsCases, average: findingsCases === 0 ? null : unknownTotal / findingsCases },
     conflicts: { total: conflictTotal, cases: findingsCases, average: findingsCases === 0 ? null : conflictTotal / findingsCases },
@@ -164,6 +176,18 @@ export function computeReportMetrics(input: {
     extractionStatus: counts(extractions.map((x) => [x.status, x.status.replaceAll("_", " ")])),
     rulesAgreement: rate(agrees.length, compared.length),
     measuredLatency: { samples: latencies.length, medianMs: median(latencies) },
-    verifiedOutcomes: events.filter((e) => e.type === "outcome.verified").length,
+    verifiedOutcomes,
+    verificationRate: rate(verifiedOutcomes, executionsCompleted),
   };
+}
+
+/** Human-readable source line for Reports. Always notes synthetic/demo data; distinguishes fixtures from a store. */
+export function reportDataSourceLabel(mode: "fixtures" | "memory" | "database"): string {
+  if (mode === "fixtures") {
+    return "Synthetic fixture signals, events, cases and extractions. Not operational data.";
+  }
+  if (mode === "database") {
+    return "Synthetic data in Supabase Postgres (signals, events, cases, extractions). Not operational data.";
+  }
+  return "Synthetic data in server memory (signals, events, cases, extractions; resets on restart). Not operational data.";
 }

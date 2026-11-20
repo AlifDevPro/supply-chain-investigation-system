@@ -96,14 +96,19 @@ not claim a record does not exist in the underlying systems.
 - Evidence Explorer: latest-run evidence per case. Opening a row uses the existing provenance drawer.
 - Supply Chain Graph: focused columns (Supplier → Purchase order → Material → Production order → Factory →
   Shipment) plus a relationship table. A focused view starts at one hop; Expand adds the next hop. Verified
-  edges cite the foreign-key column. Selecting a node or edge opens a source sheet.
+  edges cite the foreign-key column; inferred edges come from signal reference co-mentions. The source sheet
+  links to `/investigations?ref=` and `/evidence?q=` for the record id.
 - Reports: metric cards with formula / source / window; bar lists with a text summary. Windows are `24h`,
-  `7d` or all. Verified outcomes count stored `outcome.verified` events (none until a manager records one).
-- Integrations: observed facts about the ingest API, the store and the AI provider. Planned connectors are
-  listed as disabled. Cards never say "connected" or "healthy".
+  `7d` or all. Source wording follows store mode (fixtures vs memory vs database) and always says not
+  operational. Formulas are documented in `docs/reports-and-metrics.md`. Verified outcomes count stored
+  `outcome.verified` events; verification rate uses executions completed as the denominator.
+- Integrations: ingest, store, AI, MCP catalog and connector cards. Unconfigured connectors say "not
+  configured". Activity is a 5s poll of persisted tool/connector events—never fabricated health or progress.
+- Live Activity: optional `?filter=integration` for MCP/connector events only.
 - Audit & Security: append-only events as the audit trail; RLS and mutation guards read from Postgres when
   configured. Export is disabled.
-- Settings: read-only process configuration. `DATABASE_URL`, `INGEST_API_KEY` and `SESSION_SECRET` appear only as set or not set.
+- Settings: read-only process configuration. Secrets (`DATABASE_URL`, `INGEST_API_KEY`, `SESSION_SECRET`,
+  `MCP_API_KEY`, connector keys) appear only as set or not set.
 
 ## 6. Accessibility
 

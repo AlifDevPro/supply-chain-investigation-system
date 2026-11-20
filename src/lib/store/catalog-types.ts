@@ -46,6 +46,7 @@ export const INSPECTED_TABLES = [
   "inventory_reservations", "shipments", "cases", "case_signals", "investigation_runs", "evidence_items",
   "claims", "unknowns", "conflicts", "impact_calculations", "ai_extractions",
   "users", "review_decisions", "proposed_actions", "action_approvals", "action_executions", "outcome_observations",
+  "tool_calls", "connector_runs",
 ] as const;
 
 export const emptyCatalog = (): CatalogSnapshot => ({

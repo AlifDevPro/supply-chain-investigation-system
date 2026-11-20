@@ -19,12 +19,15 @@ import {
 } from "@/lib/store/memory";
 import type { BusinessRecordCatalog, StoreInspector } from "@/lib/store/catalog-types";
 import type { GovernanceRepository } from "@/lib/store/governance-types";
+import type { IntegrationRepository } from "@/lib/store/integration-types";
 import { InMemoryGovernanceRepository } from "@/lib/store/memory-governance";
+import { InMemoryIntegrationRepository } from "@/lib/store/memory-integrations";
 import { InMemoryBusinessRecordReader } from "@/lib/store/memory-records";
 import { PostgresSignalRepository } from "@/lib/store/postgres";
 import { PostgresBusinessRecordCatalog, PostgresStoreInspector } from "@/lib/store/postgres-catalog";
 import { PostgresExtractionRepository } from "@/lib/store/postgres-extractions";
 import { PostgresGovernanceRepository } from "@/lib/store/postgres-governance";
+import { PostgresIntegrationRepository } from "@/lib/store/postgres-integrations";
 import { PostgresInvestigationRepository } from "@/lib/store/postgres-investigations";
 import { PostgresBusinessRecordReader } from "@/lib/store/postgres-records";
 import type { SignalRepository } from "@/lib/store/types";
@@ -40,6 +43,7 @@ export interface Runtime {
   inspector: StoreInspector | null;
   extractions: ExtractionRepository;
   governance: GovernanceRepository;
+  integrations: IntegrationRepository;
   ai: AiConfig;
   tenantId: string;
   caseIndex: CaseReferenceSource;
@@ -53,12 +57,14 @@ interface Globals {
   __sciLoginLimiter?: FixedWindowRateLimiter;
   __sciSignupLimiter?: FixedWindowRateLimiter;
   __sciOperatorLimiter?: FixedWindowRateLimiter;
+  __sciMcpLimiter?: FixedWindowRateLimiter;
+  __sciConnectorLimiter?: FixedWindowRateLimiter;
   __sciFixtureAuth?: { db: MemoryDb; governance: InMemoryGovernanceRepository; seeded: Promise<void> };
 }
 const g = globalThis as unknown as Globals;
 
 /** Bump when `Runtime` gains fields so a long-lived dev process does not keep a stale singleton. */
-const RUNTIME_CACHE_GEN = 4;
+const RUNTIME_CACHE_GEN = 5;
 if (g.__sciRuntimeGen !== RUNTIME_CACHE_GEN) {
   g.__sciRuntime = undefined;
   g.__sciRuntimeGen = RUNTIME_CACHE_GEN;
@@ -92,6 +98,7 @@ async function create(): Promise<Runtime | null> {
     const runtime: Runtime = {
       mode: "memory", repo, investigations, reader, catalog: reader, inspector: null, tenantId, ai,
       extractions: new InMemoryExtractionRepository(db), governance,
+      integrations: new InMemoryIntegrationRepository(db),
       caseIndex: { openCases: () => investigations.openCaseReferences(tenantId) },
     };
     await seedSyntheticSignals(tenantId, { repo, caseIndex: runtime.caseIndex, investigation: investigationDeps(runtime) });
@@ -106,8 +113,29 @@ async function create(): Promise<Runtime | null> {
     mode: "database", repo, investigations, reader: new PostgresBusinessRecordReader(client),
     catalog: new PostgresBusinessRecordCatalog(client), inspector: new PostgresStoreInspector(client), tenantId, ai,
     extractions: new PostgresExtractionRepository(client), governance,
+    integrations: new PostgresIntegrationRepository(client),
     caseIndex: { openCases: () => investigations.openCaseReferences(tenantId) },
   };
+}
+
+export function mcpHostDeps(runtime: Runtime) {
+  return {
+    tenantId: runtime.tenantId,
+    reader: runtime.reader,
+    integrations: runtime.integrations,
+    signals: runtime.repo,
+    timeoutMs: getEnv().MCP_TOOL_TIMEOUT_MS,
+  };
+}
+
+export function getMcpLimiter() {
+  g.__sciMcpLimiter ??= new FixedWindowRateLimiter(60, 60_000);
+  return g.__sciMcpLimiter;
+}
+
+export function getConnectorLimiter() {
+  g.__sciConnectorLimiter ??= new FixedWindowRateLimiter(10, 60_000);
+  return g.__sciConnectorLimiter;
 }
 
 export function getRuntime(): Promise<Runtime | null> {

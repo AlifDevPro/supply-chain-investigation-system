@@ -34,7 +34,7 @@ describe("buildTrace", () => {
     const t = buildTrace("corr-1", events);
     expect(t.eventCount).toBe(5);
     expect(t.steps.map((s) => s.stage)).toEqual([
-      "received", "validated", "deduplicated", "triaged", "evidence", "impact", "case", "extraction", "review", "action", "verified",
+      "received", "validated", "deduplicated", "triaged", "evidence", "impact", "case", "extraction", "review", "action", "verified", "integration",
     ]);
     expect(t.signalId).toBe("SIG-1");
   });
@@ -42,7 +42,7 @@ describe("buildTrace", () => {
   it("marks stages with no event as missing instead of implying they ran or were skipped", () => {
     const t = buildTrace("corr-1", events);
     const missing = t.steps.filter((s) => s.kind === "missing").map((s) => s.stage);
-    expect(missing).toEqual(["deduplicated", "impact", "case", "extraction", "review", "action", "verified"]);
+    expect(missing).toEqual(["deduplicated", "impact", "case", "extraction", "review", "action", "verified", "integration"]);
   });
 
   it("computes gaps from the previous recorded stage and never reports a gap for the first step", () => {

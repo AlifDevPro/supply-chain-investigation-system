@@ -7,6 +7,8 @@ import { describeInvestigationContract } from "./investigation-contract";
 import { describeCatalogContract } from "./catalog-contract";
 import { describeGovernanceContract } from "./governance-contract";
 import { InMemoryGovernanceRepository } from "./memory-governance";
+import { describeIntegrationContract } from "./integration-contract";
+import { InMemoryIntegrationRepository } from "./memory-integrations";
 import { makeCase } from "./investigation-contract";
 
 describeSignalRepositoryContract("in-memory", async () => ({ repo: new InMemorySignalRepository() }));
@@ -40,5 +42,14 @@ describeGovernanceContract("in-memory", async () => {
     governance: new InMemoryGovernanceRepository(db),
     ensureTenant: (id) => signals.ensureTenant(id, id),
     seedCase: (tenantId, caseId) => investigations.transaction((tx) => tx.insertCase(makeCase(caseId, tenantId))),
+  };
+});
+
+describeIntegrationContract("in-memory", async () => {
+  const db = new MemoryDb();
+  const signals = new InMemorySignalRepository(db);
+  return {
+    integrations: new InMemoryIntegrationRepository(db),
+    ensureTenant: (id) => signals.ensureTenant(id, id),
   };
 });

@@ -46,6 +46,16 @@ describe("fixture data source", () => {
     await expect(getInvestigationDetail("INV-2041", "empty")).rejects.toBeInstanceOf(NotFoundError);
   });
 
+  it("filters investigations by graph ref against title, summary and indexed references", async () => {
+    const byPo = await listInvestigations("ok", { ref: "PO-77120" });
+    expect(byPo.ref).toBe("PO-77120");
+    expect(byPo.cases.some((c) => c.id === "INV-2041")).toBe(true);
+    const byShipment = await listInvestigations("ok", { ref: "SHP-30871" });
+    expect(byShipment.cases.some((c) => c.id === "INV-2041")).toBe(true);
+    const miss = await listInvestigations("ok", { ref: "PO-DOES-NOT-EXIST" });
+    expect(miss.cases).toEqual([]);
+  });
+
   it("ignores unknown scenario values", () => {
     expect(parseScenario("nope")).toBe("ok");
     expect(parseScenario(["stale"])).toBe("stale");

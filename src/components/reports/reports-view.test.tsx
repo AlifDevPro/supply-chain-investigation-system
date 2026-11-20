@@ -17,9 +17,17 @@ describe("ReportsView", () => {
       findings: [{ unknowns: 2, conflicts: 1 }],
       extractions: [],
     });
-    const { container } = render(<ReportsView metrics={metrics} asOf={SNAPSHOT_AT} />);
+    const { container } = render(
+      <ReportsView
+        metrics={metrics}
+        asOf={SNAPSHOT_AT}
+        sourceLabel="Synthetic fixture signals, events, cases and extractions. Not operational data."
+      />,
+    );
     expect(screen.getByRole("heading", { name: "Verified outcomes" })).toBeInTheDocument();
     expect(screen.getByText(/None are recorded/)).toBeInTheDocument();
+    expect(screen.getByText(/Not operational data/)).toBeInTheDocument();
+    expect(screen.getByText(/Investigations opened/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /How "Signals in window" is calculated/ })).toBeInTheDocument();
     expect(await axeViolations(container)).toEqual([]);
   });

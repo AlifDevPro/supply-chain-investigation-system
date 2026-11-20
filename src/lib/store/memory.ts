@@ -37,6 +37,7 @@ import type {
   StoredProposedAction,
   StoredUser,
 } from "./governance-types";
+import type { ConnectorRunRow, ToolCallRow } from "./integration-types";
 
 const isCanonical = (s: StoredSignal) => s.dedupeStatus === "unique" || s.dedupeStatus === "revision";
 
@@ -71,6 +72,8 @@ export class MemoryDb {
   approvals: ActionApproval[] = [];
   executions: ActionExecution[] = [];
   observations: OutcomeObservation[] = [];
+  toolCalls: ToolCallRow[] = [];
+  connectorRuns: ConnectorRunRow[] = [];
   signalCounter = 9000;
   caseCounter = 3000;
   eventSequence = 0;
@@ -81,6 +84,7 @@ export class MemoryDb {
       const lengths = [
         this.signals.length, this.events.length, this.links.length, this.runs.length, this.extractions.length,
         this.decisions.length, this.approvals.length, this.executions.length, this.observations.length,
+        this.toolCalls.length, this.connectorRuns.length,
       ] as const;
       // Cases, users and proposed actions are mutable; everything else only appends.
       const cases = structuredClone(this.cases);
@@ -98,6 +102,8 @@ export class MemoryDb {
         this.approvals.length = lengths[6];
         this.executions.length = lengths[7];
         this.observations.length = lengths[8];
+        this.toolCalls.length = lengths[9]!;
+        this.connectorRuns.length = lengths[10]!;
         this.cases = cases;
         this.users = users;
         this.actions = actions;

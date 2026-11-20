@@ -14,6 +14,7 @@ export const STAGES = [
   "review",
   "action",
   "verified",
+  "integration",
 ] as const;
 export const stageSchema = z.enum(STAGES);
 export type Stage = z.infer<typeof stageSchema>;
@@ -30,6 +31,7 @@ export const STAGE_LABELS: Record<Stage, string> = {
   review: "Review",
   action: "Action",
   verified: "Outcome verified",
+  integration: "Integration",
 };
 
 /** Conventional names from AGENTS.md section 11. The schema is documented in docs/event-schema.md. */
@@ -52,6 +54,12 @@ export const eventTypeSchema = z.enum([
   "action.execution_completed",
   "action.execution_failed",
   "outcome.verified",
+  "tool.called",
+  "tool.completed",
+  "tool.failed",
+  "connector.poll_started",
+  "connector.poll_completed",
+  "connector.poll_failed",
 ]);
 export type EventType = z.infer<typeof eventTypeSchema>;
 

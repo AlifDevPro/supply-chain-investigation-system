@@ -41,6 +41,18 @@ export function SettingsView({ data }: { data: SettingsData }) {
           <dd className="font-mono text-xs">{data.aiMaxRetries}</dd>
         </dl>
       </Panel>
+      <Panel title="MCP and connectors" description="Server-only keys. Values are never shown.">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-dense">
+          <dt className="text-muted-foreground">MCP_API_KEY</dt>
+          <dd>{data.mcpKey}</dd>
+          <dt className="text-muted-foreground">MCP_TOOL_TIMEOUT_MS</dt>
+          <dd className="font-mono text-xs">{data.mcpTimeoutMs}</dd>
+          {data.connectors.flatMap((c) => [
+            <dt key={`${c.id}-dt`} className="text-muted-foreground">{c.id}</dt>,
+            <dd key={`${c.id}-dd`}>{c.configured ? "set" : "not set"}</dd>,
+          ])}
+        </dl>
+      </Panel>
       <Panel title="Rule versions" description="Deterministic rule and prompt versions running in this process.">
         <ul className="space-y-1 font-mono text-xs" aria-label="Rule versions">
           {Object.entries(data.ruleVersions).map(([k, v]) => (

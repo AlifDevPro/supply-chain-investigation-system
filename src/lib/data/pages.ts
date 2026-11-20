@@ -1,7 +1,26 @@
 import { evidence2041 } from "@/fixtures/investigation-2041";
 import { SNAPSHOT_AT } from "@/fixtures/dataset";
 import { EXTRACTION_PROMPT_VERSION } from "@/lib/ai/extraction-schema";
-import { auditTrail, buildReviewQueue, catalogGraph, computeReportMetrics, expandableNodeIds, focusGraph, graphFocusOptions, parseReportWindow, type AuditRow, type GraphFocusKind, type ReportMetrics, type ReportWindow, type ReviewQueueItem, type SupplyGraph } from "@/lib/derive";
+import { fixtureOpenCaseReferences } from "@/fixtures/case-references";
+import {
+  auditTrail,
+  buildReviewQueue,
+  catalogGraph,
+  computeReportMetrics,
+  expandableNodeIds,
+  focusGraph,
+  graphFocusOptions,
+  parseReportWindow,
+  reportDataSourceLabel,
+  signalMentionEdges,
+  type AuditRow,
+  type GraphFocusKind,
+  type ReportMetrics,
+  type ReportWindow,
+  type ReviewQueueItem,
+  type SignalMentionRefs,
+  type SupplyGraph,
+} from "@/lib/derive";
 import type { EvidenceItem, InvestigationEvent, SignalRecord } from "@/lib/domain";
 import { getEnv } from "@/lib/env";
 import { TRIAGE_VERSION } from "@/lib/ingestion/triage";
@@ -13,6 +32,41 @@ import type { StoredExtraction } from "@/lib/store/extraction-types";
 import type { Freshness, Scenario } from "./index";
 import { freshness, gate, load, openStore, persistedFreshness, readFailed, readPersisted, readPersistedCases } from "./index";
 import { signalToRecord as toRecord } from "./records";
+
+const MAX_MENTION_SIGNALS = 100;
+
+async function loadSignalMentions(
+  mode: "fixtures" | "memory" | "database",
+  signalIds: readonly string[],
+): Promise<SignalMentionRefs[]> {
+  if (mode === "fixtures") {
+    return fixtureOpenCaseReferences.map((c) => c.references);
+  }
+  const rt = await openStore();
+  if (!rt) return [];
+  const mentions: SignalMentionRefs[] = [];
+  for (const id of signalIds.slice(0, MAX_MENTION_SIGNALS)) {
+    try {
+      const full = await rt.repo.getSignal(rt.tenantId, id);
+      if (full?.normalized?.references) mentions.push(full.normalized.references);
+    } catch {
+      /* skip unreadable row */
+    }
+  }
+  return mentions;
+}
+
+function evidenceMatchesQuery(e: EvidenceItem, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return (
+    e.sourceRecordId.toLowerCase().includes(needle) ||
+    e.title.toLowerCase().includes(needle) ||
+    e.excerpt.toLowerCase().includes(needle) ||
+    (e.sourceTable?.toLowerCase().includes(needle) ?? false) ||
+    e.caseId.toLowerCase().includes(needle)
+  );
+}
 
 const fixtureCatalog = (): CatalogSnapshot => ({
   ...syntheticBusinessDataset(new Date(SNAPSHOT_AT)),
@@ -70,19 +124,31 @@ export async function getReviewQueueData(scenario: Scenario = "ok"): Promise<Rev
   };
 }
 
-export type EvidenceExplorerData = { freshness: Freshness; evidence: EvidenceItem[] };
+export type EvidenceExplorerData = { freshness: Freshness; evidence: EvidenceItem[]; query: string | null };
 
-export async function getEvidenceExplorerData(scenario: Scenario = "ok"): Promise<EvidenceExplorerData> {
+export function parseEvidenceQuery(search: Record<string, string | string[] | undefined> = {}): string | null {
+  const raw = Array.isArray(search.q) ? search.q[0] : search.q;
+  const q = raw?.trim() ?? "";
+  return q.length > 0 ? q.slice(0, 120) : null;
+}
+
+export async function getEvidenceExplorerData(
+  scenario: Scenario = "ok",
+  search: Record<string, string | string[] | undefined> = {},
+): Promise<EvidenceExplorerData> {
+  const query = parseEvidenceQuery(search);
+  const filter = (rows: EvidenceItem[]) => (query ? rows.filter((e) => evidenceMatchesQuery(e, query)) : rows);
   const rt = await openStore();
   if (rt) {
     try {
-      return { freshness: persistedFreshness(rt.mode), evidence: await rt.investigations.listEvidence(rt.tenantId, { limit: 200 }) };
+      const evidence = filter(await rt.investigations.listEvidence(rt.tenantId, { limit: 200 }));
+      return { freshness: persistedFreshness(rt.mode), evidence, query };
     } catch (error) {
       readFailed(error);
     }
   }
   gate(scenario);
-  return { freshness: freshness(scenario), evidence: scenario === "empty" ? [] : evidence2041 };
+  return { freshness: freshness(scenario), evidence: filter(scenario === "empty" ? [] : evidence2041), query };
 }
 
 export type GraphData = {
@@ -115,7 +181,12 @@ export async function getGraphData(
   const data = await browse(scenario);
   const focus = parseGraphFocus(search);
   const expanded = parseExpanded(search.expand);
-  const full = catalogGraph(data.catalog);
+  const mentions = await loadSignalMentions(
+    data.mode,
+    data.signals.map((s) => s.id),
+  );
+  const inferred = signalMentionEdges(mentions, data.catalog);
+  const full = catalogGraph(data.catalog, inferred);
   const graph = focusGraph(full, focus, expanded);
   return {
     freshness: data.freshness,
@@ -128,7 +199,13 @@ export async function getGraphData(
   };
 }
 
-export type ReportsData = { freshness: Freshness; metrics: ReportMetrics; window: ReportWindow };
+export type ReportsData = {
+  freshness: Freshness;
+  metrics: ReportMetrics;
+  window: ReportWindow;
+  /** Honest description of where the numbers come from. */
+  sourceLabel: string;
+};
 
 export async function getReportsData(
   scenario: Scenario = "ok",
@@ -154,6 +231,7 @@ export async function getReportsData(
   return {
     freshness: data.freshness,
     window,
+    sourceLabel: reportDataSourceLabel(data.mode),
     metrics: computeReportMetrics({
       window,
       now: new Date(data.freshness.asOf),
@@ -166,21 +244,72 @@ export async function getReportsData(
   };
 }
 
+export type ConnectorCardData = {
+  id: "mailbox" | "erp_po" | "carrier";
+  label: string;
+  version: string;
+  configured: boolean;
+  lastRun: {
+    id: string;
+    status: string;
+    at: string;
+    signalsIngested: number;
+    errorClass: string | null;
+    httpStatusClass: string | null;
+  } | null;
+};
+
 export type IntegrationsData = {
   freshness: Freshness;
   ingest: { keyConfigured: boolean; bySystem: Array<{ system: string; count: number; lastReceived: string }>; lastReceived: string | null };
   store: { mode: string; migrations: Array<{ name: string; appliedAt: string }> | null };
   ai: { label: string | null; latestStatus: string | null; latestAt: string | null; count: number };
+  mcp: {
+    keyConfigured: boolean;
+    tools: Array<{ name: string; description: string }>;
+    recentCalls: Array<{
+      id: string;
+      toolName: string;
+      status: string;
+      at: string;
+      durationMs: number | null;
+      errorClass: string | null;
+    }>;
+  };
+  connectors: ConnectorCardData[];
+  canOperate: boolean;
+  operateReason: string | null;
 };
 
 export async function getIntegrationsData(scenario: Scenario = "ok"): Promise<IntegrationsData> {
   const data = await browse(scenario);
   let keyConfigured = false;
+  let mcpConfigured = false;
   let aiLabel: string | null = null;
+  let connectors: ConnectorCardData[] = [
+    { id: "mailbox", label: "Supplier email mailbox", version: "mailbox.v1", configured: false, lastRun: null },
+    { id: "erp_po", label: "ERP purchase-order connector", version: "erp_po.v1", configured: false, lastRun: null },
+    { id: "carrier", label: "Carrier tracking feed", version: "carrier.v1", configured: false, lastRun: null },
+  ];
+  let tools: Array<{ name: string; description: string }> = [];
+  let recentCalls: IntegrationsData["mcp"]["recentCalls"] = [];
+  let canOperate = false;
+  let operateReason: string | null = "Sign in with a reviewer role or higher when a store is configured.";
   try {
     const env = getEnv();
     keyConfigured = Boolean(env.INGEST_API_KEY);
+    mcpConfigured = Boolean(env.MCP_API_KEY);
     aiLabel = env.AI_PROVIDER === "none" ? null : env.AI_PROVIDER === "mock" ? "mock provider (deterministic, not a model)" : `local Ollama (${env.OLLAMA_MODEL ?? "model"})`;
+    const { connectorConfigs, isConfigured } = await import("@/lib/integrations/config");
+    const { listToolDefs } = await import("@/lib/mcp/host");
+    tools = listToolDefs();
+    connectors = connectorConfigs(env).map((c) => ({
+      id: c.id,
+      label: c.label,
+      version: c.version,
+      configured: isConfigured(c),
+      lastRun: null,
+    }));
   } catch {
     keyConfigured = false;
   }
@@ -203,6 +332,55 @@ export async function getIntegrationsData(scenario: Scenario = "ok"): Promise<In
       readFailed(error);
     }
   }
+  try {
+    const { getRuntime } = await import("@/lib/runtime");
+    const { readSession } = await import("@/lib/auth/session");
+    const { canReview } = await import("@/lib/auth/roles");
+    const runtime = await getRuntime();
+    if (runtime) {
+      const [calls, runs] = await Promise.all([
+        runtime.integrations.listToolCalls(runtime.tenantId, { limit: 10 }),
+        runtime.integrations.listConnectorRuns(runtime.tenantId, { limit: 30 }),
+      ]);
+      recentCalls = calls.map((c) => ({
+        id: c.id,
+        toolName: c.toolName,
+        status: c.status,
+        at: c.at,
+        durationMs: c.durationMs,
+        errorClass: c.errorClass,
+      }));
+      connectors = connectors.map((card) => {
+        const last = runs.find((r) => r.connectorId === card.id) ?? null;
+        return {
+          ...card,
+          lastRun: last
+            ? {
+                id: last.id,
+                status: last.status,
+                at: last.at,
+                signalsIngested: last.signalsIngested,
+                errorClass: last.errorClass,
+                httpStatusClass: last.httpStatusClass,
+              }
+            : null,
+        };
+      });
+      const session = await readSession();
+      if (session && session.tenantId === runtime.tenantId && canReview(session.role)) {
+        canOperate = true;
+        operateReason = null;
+      } else if (!session) {
+        operateReason = "Sign in to run connectors or an MCP smoke call.";
+      } else {
+        operateReason = "Reviewer role or higher is required.";
+      }
+    } else {
+      operateReason = "Connector and MCP actions need DATA_SOURCE=memory or database.";
+    }
+  } catch {
+    /* leave defaults */
+  }
   return {
     freshness: data.freshness,
     ingest: {
@@ -212,6 +390,10 @@ export async function getIntegrationsData(scenario: Scenario = "ok"): Promise<In
     },
     store: { mode: data.mode, migrations },
     ai: { label: aiLabel, latestStatus: latest?.status ?? null, latestAt: latest?.createdAt ?? null, count: data.extractions.length },
+    mcp: { keyConfigured: mcpConfigured, tools, recentCalls },
+    connectors,
+    canOperate,
+    operateReason,
   };
 }
 
@@ -251,6 +433,9 @@ export type SettingsData = {
   ollamaBaseUrl: string;
   aiTimeoutMs: number;
   aiMaxRetries: number;
+  mcpKey: "set" | "not set";
+  mcpTimeoutMs: number;
+  connectors: Array<{ id: string; configured: boolean }>;
   ruleVersions: Record<string, string>;
 };
 
@@ -279,6 +464,13 @@ export function getSettingsData(scenario: Scenario = "ok"): SettingsData {
     ollamaBaseUrl: env.OLLAMA_BASE_URL,
     aiTimeoutMs: env.AI_TIMEOUT_MS,
     aiMaxRetries: env.AI_MAX_RETRIES,
+    mcpKey: env.MCP_API_KEY ? "set" : "not set",
+    mcpTimeoutMs: env.MCP_TOOL_TIMEOUT_MS,
+    connectors: [
+      { id: "mailbox", configured: Boolean(env.MAILBOX_BASE_URL && env.MAILBOX_API_KEY) },
+      { id: "erp_po", configured: Boolean(env.ERP_BASE_URL && env.ERP_API_KEY) },
+      { id: "carrier", configured: Boolean(env.CARRIER_BASE_URL && env.CARRIER_API_KEY) },
+    ],
     ruleVersions: {
       triage: TRIAGE_VERSION,
       ...RULE_VERSIONS,

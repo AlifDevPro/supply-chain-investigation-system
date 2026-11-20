@@ -17,7 +17,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   }
   return (
     <ExploreFrame title="Reports & Analytics" description={DESCRIPTION} freshness={result.data.freshness} what="reports">
-      <ReportsView metrics={result.data.metrics} asOf={result.data.freshness.asOf} />
+      <ReportsView metrics={result.data.metrics} asOf={result.data.freshness.asOf} sourceLabel={result.data.sourceLabel} />
     </ExploreFrame>
   );
 }

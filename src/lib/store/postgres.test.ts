@@ -6,6 +6,8 @@ import { PostgresSignalRepository } from "./postgres";
 import { PostgresInvestigationRepository } from "./postgres-investigations";
 import { describeCatalogContract } from "./catalog-contract";
 import { describeGovernanceContract } from "./governance-contract";
+import { describeIntegrationContract } from "./integration-contract";
+import { PostgresIntegrationRepository } from "./postgres-integrations";
 import { INSPECTED_TABLES } from "./catalog-types";
 import { PostgresGovernanceRepository } from "./postgres-governance";
 import { PostgresBusinessRecordCatalog, PostgresStoreInspector } from "./postgres-catalog";
@@ -182,10 +184,10 @@ describe("migrations and database guarantees (PGlite)", () => {
     expect(tables.map((t) => t.relname)).toEqual(
       [
         "action_approvals", "action_executions", "ai_extractions", "case_signals", "cases", "claims", "conflicts",
-        "evidence_items", "impact_calculations", "inventory_balances", "inventory_reservations", "investigation_runs",
-        "locations", "materials", "outcome_observations", "production_orders", "production_requirements",
+        "connector_runs", "evidence_items", "impact_calculations", "inventory_balances", "inventory_reservations",
+        "investigation_runs", "locations", "materials", "outcome_observations", "production_orders", "production_requirements",
         "proposed_actions", "purchase_order_lines", "purchase_orders", "review_decisions", "shipments", "signal_events",
-        "signals", "suppliers", "tenants", "unknowns", "users",
+        "signals", "suppliers", "tenants", "tool_calls", "unknowns", "users",
       ],
     );
     for (const t of tables) {
@@ -258,6 +260,16 @@ describeGovernanceContract("postgres (PGlite)", async () => {
   };
 });
 
+describeIntegrationContract("postgres (PGlite)", async () => {
+  const client = await migratedClient();
+  const signals = new PostgresSignalRepository(client);
+  return {
+    integrations: new PostgresIntegrationRepository(client),
+    ensureTenant: (id) => signals.ensureTenant(id, id),
+    close: () => client.close(),
+  };
+});
+
 describe("store inspection (PGlite)", () => {
   it("reports applied migrations, RLS and mutation guards from the database", async () => {
     const client = await migratedClient();
@@ -271,6 +283,8 @@ describe("store inspection (PGlite)", () => {
     expect(inspection.tables.find((t) => t.table === "users")?.mutationGuard).toBe("no_delete");
     expect(inspection.tables.find((t) => t.table === "review_decisions")?.mutationGuard).toBe("append_only");
     expect(inspection.tables.find((t) => t.table === "action_approvals")?.mutationGuard).toBe("append_only");
+    expect(inspection.tables.find((t) => t.table === "tool_calls")?.mutationGuard).toBe("append_only");
+    expect(inspection.tables.find((t) => t.table === "connector_runs")?.mutationGuard).toBe("append_only");
     await client.close();
   });
 });

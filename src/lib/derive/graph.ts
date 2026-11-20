@@ -1,7 +1,18 @@
 import type { EntityKind } from "@/lib/domain";
+import type { ReferenceKey } from "@/lib/domain/signal-input";
 import type { CatalogSnapshot } from "@/lib/store/catalog-types";
 
 export type GraphFocusKind = "material" | "purchase_order" | "all";
+
+/** One signal's (or fixture stand-in's) structured references used to infer co-mention edges. */
+export type SignalMentionRefs = Partial<Record<ReferenceKey, string | null>>;
+
+const REF_TO_KIND: Partial<Record<ReferenceKey, EntityKind>> = {
+  purchaseOrder: "purchase_order",
+  material: "material",
+  shipment: "shipment",
+  productionOrder: "production_order",
+};
 
 export interface GraphNode {
   id: string;
@@ -172,4 +183,54 @@ export function graphFocusOptions(catalog: CatalogSnapshot): Array<{ kind: Graph
     ...catalog.materials.map((m) => ({ kind: "material" as const, id: m.id, label: `Material ${m.id}` })),
     ...catalog.purchaseOrders.map((p) => ({ kind: "purchase_order" as const, id: p.id, label: `Purchase order ${p.id}` })),
   ];
+}
+
+/**
+ * Inferred edges from signal reference co-mentions. Only emits an edge when both endpoints already exist
+ * as catalog nodes (no orphan nodes). Lot references are ignored (lot is not a graph entity kind).
+ */
+function catalogNodeIds(catalog: CatalogSnapshot): Set<string> {
+  const ids = new Set<string>();
+  for (const s of catalog.suppliers) ids.add(nid("supplier", s.id));
+  for (const m of catalog.materials) ids.add(nid("material", m.id));
+  for (const l of catalog.locations) ids.add(nid("factory", l.id));
+  for (const po of catalog.purchaseOrders) ids.add(nid("purchase_order", po.id));
+  for (const prd of catalog.productionOrders) ids.add(nid("production_order", prd.id));
+  for (const sh of catalog.shipments) ids.add(nid("shipment", sh.id));
+  return ids;
+}
+
+export function signalMentionEdges(
+  mentions: readonly SignalMentionRefs[],
+  catalog: CatalogSnapshot,
+): GraphEdge[] {
+  const known = catalogNodeIds(catalog);
+  const edges: GraphEdge[] = [];
+  const seen = new Set<string>();
+
+  for (const refs of mentions) {
+    const nodes: Array<{ id: string; key: ReferenceKey }> = [];
+    for (const key of Object.keys(REF_TO_KIND) as ReferenceKey[]) {
+      const kind = REF_TO_KIND[key];
+      const value = refs[key];
+      if (!kind || !value) continue;
+      const id = nid(kind, value);
+      if (!known.has(id)) continue;
+      nodes.push({ id, key });
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i]!;
+        const b = nodes[j]!;
+        const [from, to] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
+        const basisKey = a.key < b.key ? `${a.key}+${b.key}` : `${b.key}+${a.key}`;
+        const basis = `signal.references.${basisKey}`;
+        const dedupe = `${from}->${to}:${basis}`;
+        if (seen.has(dedupe)) continue;
+        seen.add(dedupe);
+        edges.push({ from, to, relationship: "inferred", basis });
+      }
+    }
+  }
+  return edges;
 }

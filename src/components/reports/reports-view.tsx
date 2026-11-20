@@ -10,11 +10,20 @@ function rateText(rate: number | null, when: string): string {
   return rate === null ? "not measured" : `${Math.round(rate * 100)}% ${when}`;
 }
 
-export function ReportsView({ metrics, asOf }: { metrics: ReportMetrics; asOf: string }) {
-  const source = "Stored synthetic signals, events, cases and extractions. Not operational data.";
+export function ReportsView({
+  metrics,
+  asOf,
+  sourceLabel,
+}: {
+  metrics: ReportMetrics;
+  asOf: string;
+  sourceLabel: string;
+}) {
+  const source = sourceLabel;
   const window = metrics.windowLabel;
   return (
     <div className="space-y-5">
+      <p className="text-dense text-muted-foreground">{source}</p>
       <div className="flex flex-wrap gap-2" role="navigation" aria-label="Report time window">
         {(Object.keys(WINDOW_LABEL) as ReportWindow[]).map((w) => (
           <Button key={w} asChild size="sm" variant={metrics.window === w ? "default" : "outline"}>
@@ -57,6 +66,13 @@ export function ReportsView({ metrics, asOf }: { metrics: ReportMetrics; asOf: s
             value={metrics.measuredLatency.medianMs === null ? "not measured" : formatDuration(metrics.measuredLatency.medianMs)}
             qualifier={`${metrics.measuredLatency.samples} event(s) recorded a duration`}
             definition={{ formula: "Median of event.durationMs where it is not null. Events without a duration are omitted, never treated as 0.", source, window }}
+            asOf={asOf}
+          />
+          <MetricCard
+            label="Investigations opened"
+            value={metrics.investigationThroughput}
+            qualifier="Cases with openedAt in this window"
+            definition={{ formula: "Count of cases whose openedAt timestamp falls inside the selected window.", source, window }}
             asOf={asOf}
           />
         </div>
@@ -126,6 +142,12 @@ export function ReportsView({ metrics, asOf }: { metrics: ReportMetrics; asOf: s
           {metrics.verifiedOutcomes === 0
             ? "None are recorded. An outcome is counted only after an independent verify-outcome.v1 check and a manager-recorded outcome.verified event. Execution completed is not verification."
             : `${metrics.verifiedOutcomes} outcome.verified event${metrics.verifiedOutcomes === 1 ? "" : "s"} in this window.`}
+        </p>
+        <p className="text-dense text-muted-foreground">
+          Verification rate:{" "}
+          {metrics.verificationRate.rate === null
+            ? "not measured (no action.execution_completed events in this window)."
+            : `${Math.round(metrics.verificationRate.rate * 100)}% (${metrics.verificationRate.numerator} verified ÷ ${metrics.verificationRate.denominator} executions completed).`}
         </p>
       </section>
     </div>

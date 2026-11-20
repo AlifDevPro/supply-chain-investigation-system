@@ -25,7 +25,10 @@ export default async function LiveActivityPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const scenario = parseScenario((await searchParams).scenario);
+  const params = await searchParams;
+  const scenario = parseScenario(params.scenario);
+  const filter = typeof params.filter === "string" ? params.filter : null;
+  const integrationOnly = filter === "integration";
   const result = await settle(getActivityData(scenario));
 
   if (!result.ok) {
@@ -37,7 +40,8 @@ export default async function LiveActivityPage({
     );
   }
 
-  const { freshness, events, stages, signals, mode, ai } = result.data;
+  const { freshness, events: allEvents, stages, signals, mode, ai } = result.data;
+  const events = integrationOnly ? allEvents.filter((e) => e.stage === "integration") : allEvents;
   const submit = getSubmitAvailability();
   const persisted = mode === "persisted snapshot";
 
@@ -58,6 +62,20 @@ export default async function LiveActivityPage({
         }
       />
       <DemoDataNotice />
+      <p className="flex flex-wrap gap-3 text-dense">
+        <a
+          href="/live-activity"
+          className={!integrationOnly ? "font-medium text-foreground underline-offset-2 hover:underline" : "text-muted-foreground hover:text-foreground"}
+        >
+          All stages
+        </a>
+        <a
+          href="/live-activity?filter=integration"
+          className={integrationOnly ? "font-medium text-foreground underline-offset-2 hover:underline" : "text-muted-foreground hover:text-foreground"}
+        >
+          Integration / MCP only
+        </a>
+      </p>
       {persisted ? (
         <p className="text-dense text-muted-foreground">
           These are <strong className="font-medium text-foreground">persisted events</strong> read from the store when the page loaded, not
@@ -74,18 +92,30 @@ export default async function LiveActivityPage({
       {freshness.stale ? <StaleDataBanner>{freshness.note}</StaleDataBanner> : null}
 
       {events.length === 0 ? (
-        <EmptyState title="No events recorded">
-          No signal has been processed in this view. When signals arrive, each processing step appears here with its server timestamp.
+        <EmptyState title={integrationOnly ? "No integration events recorded" : "No events recorded"}>
+          {integrationOnly
+            ? "No MCP tool or connector poll events are in this snapshot. Run a connector or MCP smoke call from Integrations, then reload."
+            : "No signal has been processed in this view. When signals arrive, each processing step appears here with its server timestamp."}
         </EmptyState>
       ) : (
         <>
+          {!integrationOnly ? (
+            <Panel
+              title="Pipeline stages"
+              description="Signals and cases whose latest event at each stage has the status shown. Counts are recorded events, not progress."
+            >
+              <PipelineStageRail summary={stages} />
+            </Panel>
+          ) : null}
           <Panel
-            title="Pipeline stages"
-            description="Signals and cases whose latest event at each stage has the status shown. Counts are recorded events, not progress."
+            title={integrationOnly ? "Integration event log" : "Event log"}
+            description={
+              integrationOnly
+                ? "Tool and connector events only. A call appears as completed stages only when those events were persisted."
+                : "Newest first. Open a trace to see every recorded step for one signal."
+            }
+            bodyClassName="p-3"
           >
-            <PipelineStageRail summary={stages} />
-          </Panel>
-          <Panel title="Event log" description="Newest first. Open a trace to see every recorded step for one signal." bodyClassName="p-3">
             <EventLog events={events} signals={signals} operator={persisted ? getOperatorAvailability() : undefined} ai={ai} />
           </Panel>
         </>

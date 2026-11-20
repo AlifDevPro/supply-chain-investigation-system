@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import type { IntegrationsData } from "@/lib/data/pages";
+import { describe, expect, it, vi } from "vitest";
+import type { IntegrationsViewData } from "@/components/integrations/types";
 import { axeViolations } from "@/test/axe";
 import { IntegrationsView } from "./integrations-view";
 
-const SAMPLE: IntegrationsData = {
-  freshness: { asOf: "2026-10-24T08:00:00.000Z", source: "stored records", stale: false, note: null },
+vi.mock("@/app/(workspace)/integrations/actions", () => ({
+  fetchIntegrationActivity: async () => ({ error: "Sign in required." }),
+  runConnectorNow: async () => ({ status: "idle" }),
+  mcpSmokeCall: async () => ({ status: "idle" }),
+}));
+
+const SAMPLE: IntegrationsViewData = {
   ingest: {
     keyConfigured: false,
     lastReceived: "2026-10-24T07:00:00.000Z",
@@ -13,6 +18,18 @@ const SAMPLE: IntegrationsData = {
   },
   store: { mode: "fixtures", migrations: null },
   ai: { label: null, latestStatus: null, latestAt: null, count: 0 },
+  mcp: {
+    keyConfigured: false,
+    tools: [{ name: "get_purchase_order", description: "Read one purchase order." }],
+    recentCalls: [],
+  },
+  connectors: [
+    { id: "mailbox", label: "Supplier email mailbox", version: "mailbox.v1", configured: false, lastRun: null },
+    { id: "erp_po", label: "ERP purchase-order connector", version: "erp_po.v1", configured: false, lastRun: null },
+    { id: "carrier", label: "Carrier tracking feed", version: "carrier.v1", configured: false, lastRun: null },
+  ],
+  canOperate: false,
+  operateReason: "Sign in to run connectors or an MCP smoke call.",
 };
 
 describe("IntegrationsView", () => {
@@ -21,8 +38,10 @@ describe("IntegrationsView", () => {
     expect(screen.getByRole("heading", { name: "Ingest API" })).toBeInTheDocument();
     expect(screen.getByText(/does not claim the API is healthy/)).toBeInTheDocument();
     expect(screen.queryByText(/\bconnected\b/i)).toBeNull();
-    expect(screen.getByText("not configured")).toBeInTheDocument();
-    expect(screen.getAllByText("Phase 6").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("not configured").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "MCP" })).toBeInTheDocument();
+    expect(screen.getByText("get_purchase_order")).toBeInTheDocument();
+    expect(screen.getByText("Supplier email mailbox")).toBeInTheDocument();
     expect(await axeViolations(container)).toEqual([]);
   });
 });

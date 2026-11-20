@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/common/page-header";
 import { InvestigationsTable } from "@/components/investigations/investigations-table";
 import { DemoDataNotice } from "@/components/provenance/data-mode-badge";
@@ -17,8 +18,9 @@ export default async function InvestigationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const scenario = parseScenario((await searchParams).scenario);
-  const result = await settle(listInvestigations(scenario));
+  const search = await searchParams;
+  const scenario = parseScenario(search.scenario);
+  const result = await settle(listInvestigations(scenario, search));
 
   if (!result.ok) {
     return (
@@ -29,7 +31,7 @@ export default async function InvestigationsPage({
     );
   }
 
-  const { freshness, cases } = result.data;
+  const { freshness, cases, ref } = result.data;
   return (
     <div className="space-y-5">
       <PageHeader
@@ -38,10 +40,20 @@ export default async function InvestigationsPage({
         actions={<FreshnessIndicator asOf={freshness.asOf} source={freshness.source} stale={freshness.stale} />}
       />
       <DemoDataNotice />
+      {ref ? (
+        <p className="text-dense text-muted-foreground">
+          Filtered to cases mentioning <span className="font-mono text-xs">{ref}</span>.{" "}
+          <Link href="/investigations" className="text-primary underline-offset-2 hover:underline">
+            Clear filter
+          </Link>
+        </p>
+      ) : null}
       {freshness.stale ? <StaleDataBanner>{freshness.note}</StaleDataBanner> : null}
       {cases.length === 0 ? (
-        <EmptyState title="No investigations yet">
-          No signal has produced an investigation in this view. Signals filtered out as irrelevant are still recorded in Live Activity.
+        <EmptyState title={ref ? "No matching investigations" : "No investigations yet"}>
+          {ref
+            ? `No case title, summary or id contains “${ref}”. Clear the filter or pick another record from the graph.`
+            : "No signal has produced an investigation in this view. Signals filtered out as irrelevant are still recorded in Live Activity."}
         </EmptyState>
       ) : (
         <div className="rounded-md border bg-card p-3">

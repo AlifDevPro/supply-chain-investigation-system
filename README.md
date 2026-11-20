@@ -1311,6 +1311,8 @@ Deliverables:
 
 **Acceptance criteria:** Tool calls are bounded, tenant-scoped, and auditable. No arbitrary SQL or unrestricted shell tools are exposed.
 
+**Phase 6 status:** implemented. A real MCP server exposes read-only tools over stdio (`npm run mcp`) and authenticated HTTP (`POST /api/mcp` with `MCP_API_KEY`). Tools wrap `BusinessRecordReader` with zod schemas, timeouts, row caps and append-only `tool_calls` audit. HTTPS adapters (`mailbox.v1`, `erp_po.v1`, `carrier.v1`) poll configured base URLs (or the local mock on port 3099); unconfigured connectors show "not configured". Integrations and Live Activity (`?filter=integration`) render persisted tool/connector events with a 5s poll—no fabricated health. See `docs/mcp-and-integrations.md` and ADR 0005.
+
 ### Phase 7 — Reports and supply-chain visualization
 
 **Goal:** Explain broader operational dependencies and performance.
@@ -1324,6 +1326,8 @@ Deliverables:
 - Filters and drill-down navigation.
 
 **Acceptance criteria:** Charts use persisted, correctly defined data; inferred relationships are distinguishable from verified ones; users can navigate from a visualization to the underlying records.
+
+**Phase 7 status:** implemented (close-out). Report metrics are documented in `docs/reports-and-metrics.md` with formulas, windows and sources; the Reports page source line matches fixtures vs persisted store mode. The supply-chain graph shows verified FK edges plus inferred edges from signal reference co-mentions. Graph source sheets link to filtered Investigations (`?ref=`) and Evidence (`?q=`). Export remains disabled. Time-to-detect/resolve and chart libraries are deferred. Data remains synthetic / demo-tenant labelled.
 
 ### Phase 8 — Security, reliability, and shadow pilot
 

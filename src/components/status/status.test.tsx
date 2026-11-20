@@ -46,7 +46,7 @@ describe("status components never rely on color alone", () => {
   });
 
   it("covers every stage name used by Live Activity", () => {
-    expect(STAGES.length).toBe(11);
+    expect(STAGES.length).toBe(12);
   });
 });
 

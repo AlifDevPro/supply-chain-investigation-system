@@ -20,6 +20,13 @@ const SAMPLE: SettingsData = {
   ollamaBaseUrl: "http://127.0.0.1:11434",
   aiTimeoutMs: 15000,
   aiMaxRetries: 1,
+  mcpKey: "not set",
+  mcpTimeoutMs: 5000,
+  connectors: [
+    { id: "mailbox", configured: false },
+    { id: "erp_po", configured: false },
+    { id: "carrier", configured: false },
+  ],
   ruleVersions: { triage: "triage.v1", extraction: "signal-extraction.v1" },
 };
 

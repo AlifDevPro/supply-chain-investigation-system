@@ -22,6 +22,7 @@ import {
   type Signal,
   type SignalRecord,
 } from "@/lib/domain";
+import { fixtureOpenCaseReferences } from "@/fixtures/case-references";
 import { cases as rawCases, events as rawEvents, signals as rawSignals, SNAPSHOT_AT } from "@/fixtures/dataset";
 import {
   actions2041,
@@ -282,14 +283,36 @@ export async function getOverviewData(scenario: Scenario = "ok"): Promise<Overvi
   };
 }
 
-export type InvestigationList = { freshness: Freshness; cases: InvestigationCase[] };
+export type InvestigationList = { freshness: Freshness; cases: InvestigationCase[]; ref: string | null };
 
-export async function listInvestigations(scenario: Scenario = "ok"): Promise<InvestigationList> {
+export function parseInvestigationRef(search: Record<string, string | string[] | undefined> = {}): string | null {
+  const raw = Array.isArray(search.ref) ? search.ref[0] : search.ref;
+  const ref = raw?.trim() ?? "";
+  return ref.length > 0 ? ref.slice(0, 64) : null;
+}
+
+function caseMatchesRef(c: InvestigationCase, ref: string): boolean {
+  const needle = ref.trim().toLowerCase();
+  if (!needle) return true;
+  if (c.id.toLowerCase().includes(needle) || c.title.toLowerCase().includes(needle) || c.summary.toLowerCase().includes(needle)) {
+    return true;
+  }
+  const indexed = fixtureOpenCaseReferences.find((r) => r.caseId === c.id);
+  if (!indexed) return false;
+  return Object.values(indexed.references).some((v) => typeof v === "string" && v.toLowerCase() === needle);
+}
+
+export async function listInvestigations(
+  scenario: Scenario = "ok",
+  search: Record<string, string | string[] | undefined> = {},
+): Promise<InvestigationList> {
+  const ref = parseInvestigationRef(search);
+  const filter = (cases: InvestigationCase[]) => (ref ? cases.filter((c) => caseMatchesRef(c, ref)) : cases);
   const rt = await openStore();
-  if (rt) return { freshness: persistedFreshness(rt.mode), cases: await readPersistedCases(rt, 500) };
+  if (rt) return { freshness: persistedFreshness(rt.mode), cases: filter(await readPersistedCases(rt, 500)), ref };
   gate(scenario);
   const s = load();
-  return { freshness: freshness(scenario), cases: scenario === "empty" ? [] : s.cases };
+  return { freshness: freshness(scenario), cases: filter(scenario === "empty" ? [] : s.cases), ref };
 }
 
 export type InvestigationResult = {

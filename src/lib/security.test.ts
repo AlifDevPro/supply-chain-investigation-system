@@ -33,11 +33,18 @@ describe("secrets and server-only boundaries", () => {
     expect(text).toMatch(/^DEMO_MANAGER_PASSWORD=$/m);
     expect(text).toMatch(/^GOOGLE_CLIENT_ID=$/m);
     expect(text).toMatch(/^GOOGLE_CLIENT_SECRET=$/m);
+    expect(text).toMatch(/^MCP_API_KEY=$/m);
+    expect(text).toMatch(/^MAILBOX_BASE_URL=$/m);
+    expect(text).toMatch(/^MAILBOX_API_KEY=$/m);
+    expect(text).toMatch(/^ERP_BASE_URL=$/m);
+    expect(text).toMatch(/^ERP_API_KEY=$/m);
+    expect(text).toMatch(/^CARRIER_BASE_URL=$/m);
+    expect(text).toMatch(/^CARRIER_API_KEY=$/m);
     expect(text).not.toMatch(/postgres(ql)?:\/\//);
   });
 
   it("server-only modules import 'server-only'", () => {
-    for (const f of ["lib/env.ts", "lib/runtime.ts", "lib/db/postgres-client.ts", "lib/auth/session.ts"]) {
+    for (const f of ["lib/env.ts", "lib/runtime.ts", "lib/db/postgres-client.ts", "lib/auth/session.ts", "lib/mcp/http.ts"]) {
       expect(read(path.join(SRC, f)), f).toMatch(/^import "server-only";/m);
     }
   });
@@ -70,6 +77,7 @@ describe("secrets and server-only boundaries", () => {
       "lib/store/postgres-extractions.ts": /^(COLUMNS)$/,
       "lib/store/postgres-catalog.ts": /^(LIMIT)$/,
       "lib/store/postgres-governance.ts": /^(?!)$/,
+      "lib/store/postgres-integrations.ts": /^(?!)$/,
       // `where` is one of two hard-coded column names; table specs are literals in the same file.
       "lib/store/postgres-records.ts":
         /^(LIMIT|where|spec\.table|names\.join\(", "\)|spec\.keys\.join\(", "\)|conflict|names\.map\(\(n\) => `x\.|spec\.columns\.map\(\(\[n, t\]\) => `|values\.map\(\(n\) => `|n|t|String\(.*\))$/,
